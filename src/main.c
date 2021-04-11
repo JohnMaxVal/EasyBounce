@@ -1,34 +1,37 @@
 //#include <SDL.h>
 #include <stdio.h>
 #include <SDL.h>
+#include "./constants.h"
 
-const int SCREEN_WIDTH = 800;
-const int SCREEN_HEIGHT = 600;
+SDL_Window* window = NULL;
+SDL_Renderer* renderer = NULL;
+
+int initialize_window(void) {
+    if(SDL_Init(SDL_INIT_EVERYTHING) != 0) {
+        fprintf(stderr, "Error intializing SDL.\n");
+        return FALSE;
+    }
+    window = SDL_CreateWindow(
+        NULL,
+        SDL_WINDOWPOS_CENTERED,
+        SDL_WINDOWPOS_CENTERED,
+        SCREEN_WIDTH,
+        SCREEN_HEIGHT,
+        SDL_WINDOW_BORDERLESS
+    );
+    if(window == NULL) {
+        fprintf(stderr, "Error creating SDL window.\n");
+        return FALSE;
+    }
+    renderer = SDL_CreateRenderer(window, -1, 0);
+    if(renderer == NULL) {
+        fprintf(stderr, "Error creating SDL Renderer.\n");
+        return FALSE;
+    }
+    return TRUE;
+}
 
 int main(int argc, char* argv[]) {
-    SDL_Window* window = NULL;
-    SDL_Surface* screenSurface = NULL;
-
-    if(SDL_Init(SDL_INIT_VIDEO) < 0) {
-        printf("SDL could not initialize SDL_Error: %s\n", SDL_GetError());
-    } else {
-        window = SDL_CreateWindow("SDL tutorial", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, SCREEN_WIDTH, SCREEN_HEIGHT, SDL_WINDOW_SHOWN);
-        if(window == NULL) {
-            printf("Window could not be created! SDL_Error: %s\n", SDL_GetError());
-        } else {
-            screenSurface = SDL_GetWindowSurface(window);
-
-            SDL_FillRect(screenSurface, NULL, SDL_MapRGB(screenSurface->format, 0xff, 0xff, 0xff));
-
-            SDL_UpdateWindowSurface(window);
-
-            SDL_Delay(5000);
-        }
-    }
-
-    SDL_DestroyWindow(window);
-
-    SDL_Quit();
-    
+    initialize_window();
     return 0;
 }
