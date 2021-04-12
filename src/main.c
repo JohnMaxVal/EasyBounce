@@ -29,6 +29,21 @@ struct paddle {
     float y_velocity;
 } Paddle;
 
+typedef struct coords {
+	// Left top
+	int left_top_x;
+	int left_top_y;
+	// Left bottom
+	int left_bottom_x;
+	int left_bottom_y;
+	// Right top
+	int right_top_x;
+	int right_top_y;
+	// Right Bottom
+	int right_bottom_x;
+	int right_bottom_y;
+} Coords;
+
 int initialize_window(void) {
     if(SDL_Init(SDL_INIT_EVERYTHING) != 0) {
         fprintf(stderr, "Error intializing SDL.\n");
@@ -80,8 +95,8 @@ void setup_ball(void) {
     Ball.y = 20;
     Ball.width = 15;
     Ball.height = 15;
-    Ball.x_velocity = 50;
-    Ball.y_velocity = 70;
+    Ball.x_velocity = 150;
+    Ball.y_velocity = 130;
 }
 
 void setup_paddle(void) {
@@ -96,6 +111,59 @@ void setup_paddle(void) {
 void setup(void) {
     setup_ball();
     setup_paddle();
+}
+
+void init_ball_coords(Coords* ball_coords) {
+    int ball_x = (int)Ball.x;
+    int ball_y = (int)Ball.y;
+    int ball_w = (int)Ball.width;
+    int ball_h = (int)Ball.height;
+
+    ball_coords->left_top_x = ball_coords->left_bottom_x = ball_x;
+    ball_coords->left_top_y = ball_coords->right_top_y = ball_y;
+    ball_coords->right_top_x = ball_coords->right_bottom_x = ball_x + ball_w;
+    ball_coords->left_bottom_y = ball_coords->right_bottom_y = ball_y + ball_h;
+}
+
+void init_paddle_coords(Coords* paddle_coords) {
+    int paddle_x = (int)Paddle.x;
+    int paddle_y = (int)Paddle.y;
+    int paddle_w = (int)Paddle.width;
+    int paddle_h = (int)Paddle.height;
+
+    paddle_coords->left_top_x = paddle_coords->left_bottom_x = paddle_x;
+    paddle_coords->left_top_y = paddle_coords->right_top_y = paddle_y;
+    paddle_coords->right_top_x = paddle_coords->right_bottom_x = paddle_x + paddle_w;
+    paddle_coords->left_bottom_y = paddle_coords->right_bottom_y = paddle_y + paddle_h;
+}
+
+int check_right_collision(Coords* b_coords, Coords* p_coords) {
+    int x_collision = (b_coords->left_bottom_x >= p_coords->right_top_x);
+	int y_collision = (b_coords->left_bottom_y >= p_coords->right_top_y);
+	return x_collision && y_collision;
+}
+
+int check_left_collision(Coords* b_coords, Coords* p_coords) {
+    int x_collision = (b_coords->right_bottom_x >= p_coords->left_top_x);
+	int y_collision = (b_coords->right_bottom_y >= p_coords->left_top_y);
+	return x_collision && y_collision;
+}
+
+void collision(Coords* ball_coords, Coords* paddle_coords) {
+    if(check_right_collision(ball_coords, paddle_coords)) {
+        Ball.y_velocity = -Ball.y_velocity;
+    }
+    else if(check_left_collision(ball_coords, paddle_coords)) {
+        Ball.x_velocity = -Ball.x_velocity;
+        Ball.y_velocity = -Ball.y_velocity;
+    }
+
+    if(paddle_coords->left_top_x <= 0) {
+        Paddle.x = 0;
+    }
+    else if(paddle_coords->right_top_x >= SCREEN_WIDTH) {
+        Paddle.x = SCREEN_WIDTH - Paddle.width;
+    }
 }
 
 void update(void) {
@@ -116,15 +184,12 @@ void update(void) {
     Paddle.x += Paddle.x_velocity * delta_time;
     Paddle.y += Paddle.y_velocity * delta_time;
 
-    // TODO: ball boundary
-    //if()
+    Coords ball_coords = {0};
+    init_ball_coords(&ball_coords);
+    Coords paddle_coords = {0};
+    init_paddle_coords(&paddle_coords);
 
-    if(Paddle.x <= 0) {
-        Paddle.x = 0;
-    }
-    else if((Paddle.x + Paddle.width) >= SCREEN_WIDTH) {
-        Paddle.x = SCREEN_WIDTH - Paddle.width;
-    }
+    collision(&ball_coords, &paddle_coords);
 }
 
 void draw_object(SDL_Rect rect) {
