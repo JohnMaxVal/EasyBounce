@@ -1,6 +1,7 @@
 //#include <SDL.h>
 #include <stdio.h>
 #include <SDL.h>
+#include <math.h>
 #include "./constants.h"
 
 int game_is_running = FALSE;
@@ -15,6 +16,8 @@ struct ball {
     float y;
     float width;
     float height;
+    float x_velocity;
+    float y_velocity;
 } Ball;
 
 struct paddle {
@@ -22,6 +25,8 @@ struct paddle {
     float y;
     float width;
     float height;
+    float x_velocity;
+    float y_velocity;
 } Paddle;
 
 int initialize_window(void) {
@@ -60,6 +65,12 @@ void process_input(void) {
         case SDL_KEYDOWN:
             if(event.key.keysym.sym == SDLK_ESCAPE)
                 game_is_running = FALSE;
+            else if(event.key.keysym.sym == SDLK_LEFT) {
+                Paddle.x_velocity = -300;
+            }
+            else if(event.key.keysym.sym == SDLK_RIGHT) {
+                Paddle.x_velocity = 300;
+            }
             break;
     }
 }
@@ -69,13 +80,17 @@ void setup_ball(void) {
     Ball.y = 20;
     Ball.width = 15;
     Ball.height = 15;
+    Ball.x_velocity = 50;
+    Ball.y_velocity = 70;
 }
 
 void setup_paddle(void) {
-    Paddle.x = 20;
+    Paddle.x = 0;
     Paddle.y = -20 + SCREEN_HEIGHT;
-    Paddle.width = Ball.width * 5;
+    Paddle.width = Ball.width * 7;
     Paddle.height = Ball.height;
+    Paddle.x_velocity = 0;
+    Paddle.y_velocity = 0;
 }
 
 void setup(void) {
@@ -95,8 +110,21 @@ void update(void) {
     // Keeping fixed timestamp
     last_frame_time = SDL_GetTicks();
 
-    Ball.x += 70 * delta_time;
-    Ball.y += 50 * delta_time;
+    Ball.x += Ball.x_velocity * delta_time;
+    Ball.y += Ball.y_velocity * delta_time;
+
+    Paddle.x += Paddle.x_velocity * delta_time;
+    Paddle.y += Paddle.y_velocity * delta_time;
+
+    // TODO: ball boundary
+    //if()
+
+    if(Paddle.x <= 0) {
+        Paddle.x = 0;
+    }
+    else if((Paddle.x + Paddle.width) >= SCREEN_WIDTH) {
+        Paddle.x = SCREEN_WIDTH - Paddle.width;
+    }
 }
 
 void draw_object(SDL_Rect rect) {
