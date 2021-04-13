@@ -5,29 +5,39 @@
 #include "./constants.h"
 
 int game_is_running = FALSE;
+int game_is_freezed = FALSE;
 SDL_Window* window = NULL;
 SDL_Renderer* renderer = NULL;
 
 int last_frame_time = 0;
 // keep time in ms from the last called frame
 
-struct ball {
+struct GameObject {
     float x;
     float y;
     float width;
     float height;
     float x_velocity;
     float y_velocity;
-} Ball;
+} Ball, Paddle;
 
-struct paddle {
-    float x;
-    float y;
-    float width;
-    float height;
-    float x_velocity;
-    float y_velocity;
-} Paddle;
+// struct ball {
+//     float x;
+//     float y;
+//     float width;
+//     float height;
+//     float x_velocity;
+//     float y_velocity;
+// } Ball;
+
+// struct paddle {
+//     float x;
+//     float y;
+//     float width;
+//     float height;
+//     float x_velocity;
+//     float y_velocity;
+// } Paddle;
 
 typedef struct coords {
 	// Left top
@@ -69,34 +79,13 @@ int initialize_window(void) {
     return TRUE;
 }
 
-void process_input(void) {
-    SDL_Event event;
-    SDL_PollEvent(&event);
-
-    switch(event.type) {
-        case SDL_QUIT:
-            game_is_running = FALSE;
-            break;
-        case SDL_KEYDOWN:
-            if(event.key.keysym.sym == SDLK_ESCAPE)
-                game_is_running = FALSE;
-            else if(event.key.keysym.sym == SDLK_LEFT) {
-                Paddle.x_velocity = -300;
-            }
-            else if(event.key.keysym.sym == SDLK_RIGHT) {
-                Paddle.x_velocity = 300;
-            }
-            break;
-    }
-}
-
 void setup_ball(void) {
     Ball.x = 20;
     Ball.y = 20;
     Ball.width = 15;
     Ball.height = 15;
-    Ball.x_velocity = 150;
-    Ball.y_velocity = 130;
+    Ball.x_velocity = 300;
+    Ball.y_velocity = 300;
 }
 
 void setup_paddle(void) {
@@ -108,10 +97,55 @@ void setup_paddle(void) {
     Paddle.y_velocity = 0;
 }
 
+void freeze_objects(void) {
+    game_is_freezed = TRUE;
+    Ball.x_velocity = 0;
+    Ball.y_velocity = 0;
+    Paddle.x_velocity = 0;
+    Paddle.y_velocity = 0;
+}
+
 void setup(void) {
     setup_ball();
     setup_paddle();
 }
+
+void process_input(void) {
+    SDL_Event event;
+    SDL_PollEvent(&event);
+
+    switch(event.type) {
+        case SDL_QUIT:
+            game_is_running = FALSE;
+            break;
+        case SDL_KEYDOWN:
+            if(event.key.keysym.sym == SDLK_ESCAPE)
+                game_is_running = FALSE;
+            else if(event.key.keysym.sym == SDLK_LEFT && !game_is_freezed) {
+                Paddle.x_velocity = -400;
+            }
+            else if(event.key.keysym.sym == SDLK_RIGHT && !game_is_freezed) {
+                Paddle.x_velocity = 400;
+            }
+            else if(event.key.keysym.sym == SDLK_SPACE) {
+                game_is_freezed = FALSE;
+                setup();
+            }
+            break;
+    }
+}
+
+// void init_object_coords(Coords* ball_coords, struct GameObject game_obj) {
+//     int obj_x = (int)game_obj.x;
+//     int obj_y = (int)game_obj.y;
+//     int obj_w = (int)game_obj.width;
+//     int obj_h = (int)game_obj.height;
+
+//     ball_coords->left_top_x = ball_coords->left_bottom_x = obj_x;
+//     ball_coords->left_top_y = ball_coords->right_top_y = obj_y;
+//     ball_coords->right_top_x = ball_coords->right_bottom_x = obj_x + obj_w;
+//     ball_coords->left_bottom_y = ball_coords->right_bottom_y = obj_y + obj_h;
+// }
 
 void init_ball_coords(Coords* ball_coords) {
     int ball_x = (int)Ball.x;
@@ -137,24 +171,35 @@ void init_paddle_coords(Coords* paddle_coords) {
     paddle_coords->left_bottom_y = paddle_coords->right_bottom_y = paddle_y + paddle_h;
 }
 
-int check_right_collision(Coords* b_coords, Coords* p_coords) {
+int check_right_objects_collision(Coords* b_coords, Coords* p_coords) {
     int x_collision = (b_coords->left_bottom_x >= p_coords->right_top_x);
 	int y_collision = (b_coords->left_bottom_y >= p_coords->right_top_y);
 	return x_collision && y_collision;
 }
 
-int check_left_collision(Coords* b_coords, Coords* p_coords) {
+int check_left_objects_collision(Coords* b_coords, Coords* p_coords) {
     int x_collision = (b_coords->right_bottom_x >= p_coords->left_top_x);
 	int y_collision = (b_coords->right_bottom_y >= p_coords->left_top_y);
 	return x_collision && y_collision;
 }
 
+int check_x_border_collision(Coords* b_coords) {
+    return (b_coords->right_top_x >= SCREEN_WIDTH || b_coords->left_top_x <= 0);
+}
+
+int check_y_border_collision(Coords* b_coords) {
+    return (b_coords->right_top_y <= 0);
+}
+
+int check_bottom_border(Coords* b_coords) {
+    return (b_coords->right_bottom_y >= SCREEN_HEIGHT);
+}
+
 void collision(Coords* ball_coords, Coords* paddle_coords) {
-    if(check_right_collision(ball_coords, paddle_coords)) {
-        Ball.y_velocity = -Ball.y_velocity;
-    }
-    else if(check_left_collision(ball_coords, paddle_coords)) {
+    if(check_right_objects_collision(ball_coords, paddle_coords) || check_x_border_collision(ball_coords)) {
         Ball.x_velocity = -Ball.x_velocity;
+    }
+    else if(check_left_objects_collision(ball_coords, paddle_coords) || check_y_border_collision(ball_coords)) {
         Ball.y_velocity = -Ball.y_velocity;
     }
 
@@ -163,6 +208,12 @@ void collision(Coords* ball_coords, Coords* paddle_coords) {
     }
     else if(paddle_coords->right_top_x >= SCREEN_WIDTH) {
         Paddle.x = SCREEN_WIDTH - Paddle.width;
+    }
+
+    if(check_bottom_border(ball_coords)) {
+        freeze_objects();
+        Ball.x_velocity = 0;
+        Ball.y_velocity = 0;
     }
 }
 
@@ -185,8 +236,10 @@ void update(void) {
     Paddle.y += Paddle.y_velocity * delta_time;
 
     Coords ball_coords = {0};
+    //init_object_coords(&ball_coords, Ball);
     init_ball_coords(&ball_coords);
     Coords paddle_coords = {0};
+    //init_object_coords(&ball_coords, Paddle);
     init_paddle_coords(&paddle_coords);
 
     collision(&ball_coords, &paddle_coords);

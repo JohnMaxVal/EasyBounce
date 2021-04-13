@@ -16,11 +16,11 @@ RELEASE_PATH = ./Release
 SDL_DLL_PATH = C:/mingw_dev_lib/bin/SDL2.dll
 
 build:
-	$(CC) $(GDB_FLAG) \
+	$(CC) \
 	$(COMPILER_FLAGS) \
 	$(SRC_PATH) \
 	$(SDL_INCLUDE_PATH) $(SDL_LIBS_PATH) $(LINKER_FLAGS) \
-	-o $(DEBUG_PATH)/game
+	-o $(RELEASE_PATH)/game
 
 run:
 	./game
